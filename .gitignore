@@ -1,0 +1,10 @@
+env
+.env
+env/
+venv/
+model/
+model
+ncsa-hackathon-f88e88a84517.json
+ncsa-hackathon-f88e88a84517.json/
+__pycache__/
+__pycache__
