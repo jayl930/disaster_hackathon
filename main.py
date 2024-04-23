@@ -7,6 +7,7 @@ from langchain_openai import AzureChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 from pymongo.mongo_client import MongoClient
 from typing import Optional
@@ -275,6 +276,42 @@ def get_bounds_and_draw(img_bounds, lat, lng, img_path):
     return damage_category
 
 
+def get_report():
+    with open("emergency_details.json", "r") as file:
+        emergency_details = json.load(file)
+
+    details = "\n".join(
+        [f"- '{key}': {value}" for key, value in emergency_details.items()]
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
+                You will read in the emergency_details.json.
+                Details:
+                {details}
+                There are 8 fields in the JSON file.
+                - 'name': The name of the person.
+                - 'appearance': A description of the person's appearance.
+                - 'address': The address where assistance is needed.
+                - 'situation': A detailed description of the situation facing the person, written in third person.
+                - 'latitude': The latitude of the address mentioned above.
+                - 'longitude': The longitude of the address mentioned above.
+                - 'classify': The level of severity of the address. There are four levels: destroyed, major-damage, minor-damage and no-damage.
+                - 'destroyed': The percentage of destruction in the surrounding area. The higher the percentage, the more severe the damage.
+                According to the information above, please write a message in detail to the emergency services to inform them of the situation.
+                """,
+            ),
+            ("human", ""),
+        ]
+    )
+    chain = {"details": RunnablePassthrough()} | prompt | llm
+    response = chain.invoke(details)
+    return response.content
+
+
 def process_text_and_images(text):
     nw, ne, se, sw = get_images(text, "data")
     subprocess.run(["python", "predictclimax_cls.py", "0"])
@@ -300,7 +337,8 @@ def process_text_and_images(text):
     with open("emergency_details.json", "w") as file:
         json.dump(emergency_details, file, indent=4)
     image = Image.open("marked/image.png")
-    return image
+    report = get_report()
+    return report, image
 
 
 def transcribe(audio):
@@ -323,13 +361,20 @@ def full_workflow(audio):
 
 with gr.Blocks() as demo:
     with gr.Row():
-        audio_input = gr.Audio(type="numpy", label="Record your speech")
-        transcribe_button = gr.Button("Transcribe Audio")
-    transcription_output = gr.Textbox(
-        label="Transcription", placeholder="Transcribed text will appear here..."
-    )
-    process_button = gr.Button("Process Transcription")
-    image_output = gr.Image(label="Destroyed Buildings")
+        with gr.Column():
+            audio_input = gr.Audio(type="numpy", label="Record your speech")
+            transcribe_button = gr.Button("Transcribe Audio")
+        with gr.Column():
+            transcription_output = gr.Textbox(
+                label="Transcription",
+                placeholder="Transcribed text will appear here...",
+                lines=10,
+            )
+            process_button = gr.Button("Process Transcription")
+
+    with gr.Row():
+        report_output = gr.Textbox(label="Report")
+        image_output = gr.Image(label="Destroyed Buildings")
 
     transcribe_button.click(
         transcribe, inputs=audio_input, outputs=transcription_output
@@ -337,7 +382,7 @@ with gr.Blocks() as demo:
     process_button.click(
         process_text_and_images,
         inputs=transcription_output,
-        outputs=[image_output],
+        outputs=[report_output, image_output],
     )
 
 demo.launch()
