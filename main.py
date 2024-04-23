@@ -114,6 +114,7 @@ def handle_emergency_situation(question):
         "latitude": geocode_result["lat"],
         "longitude": geocode_result["lng"],
     }
+    print(emergency_details)
     save_emergency_details(emergency_details)
     # if isinstance(geocode_result, tuple):
     #     print(f"Error {geocode_result[0]}: {geocode_result[1]}")
@@ -228,11 +229,32 @@ def latlng_to_pixels(lat, lng, img_bounds, img_size):
     return (x, y)
 
 
+def classify_damage(rgb):
+    red = (255, 0, 0)
+    blue = (0, 0, 255)
+    distance_to_red = (
+        (rgb[0] - red[0]) ** 2 + (rgb[1] - red[1]) ** 2 + (rgb[2] - red[2]) ** 2
+    ) ** 0.5
+    distance_to_blue = (
+        (rgb[0] - blue[0]) ** 2 + (rgb[1] - blue[1]) ** 2 + (rgb[2] - blue[2]) ** 2
+    ) ** 0.5
+
+    if distance_to_red < distance_to_blue:
+        if rgb[1] < 60:
+            return "destroyed"
+        elif rgb[1] < 120:
+            return "major-damage"
+        else:
+            return "minor-damage"
+    else:
+        return "no-damage"
+
+
 def get_bounds_and_draw(img_bounds, lat, lng, img_path):
     img = Image.open(img_path)
     img_size = img.size
     pixel_coords = latlng_to_pixels(lat, lng, img_bounds, img_size)
-
+    path = img_path.split("/")[-1]
     draw = ImageDraw.Draw(img)
     radius = 20
     color = "red"
@@ -246,12 +268,17 @@ def get_bounds_and_draw(img_bounds, lat, lng, img_path):
         outline=color,
         width=3,
     )
-
-    modified_img_path = "marked/img.png"
+    color_at_pixel = img.getpixel((int(pixel_coords[0]), int(pixel_coords[1])))
+    damage_category = classify_damage(color_at_pixel)
+    modified_img_path = "marked/image.png"
     img.save(modified_img_path)
+    return damage_category
 
 
 def process_text_and_images(text):
+    nw, ne, se, sw = get_images(text, "data")
+    subprocess.run(["python", "predictclimax_cls.py", "0"])
+    image_dir = "pred34_cls_"
     with open("emergency_details.json", "r") as file:
         emergency_details = json.load(file)
 
@@ -261,17 +288,19 @@ def process_text_and_images(text):
     if lat is None or lng is None:
         print("Latitude or longitude not found in JSON.")
         return None
-
-    nw, ne, se, sw = get_images(text, "data")
-    subprocess.run(["python", "predictclimax_cls.py", "0"])
-    image_dir = "pred34_cls_"
-    images = [
-        Image.open(os.path.join(image_dir, fname))
-        for fname in sorted(os.listdir(image_dir))
-        if fname.endswith(".png")
-    ]
     img_bounds = (sw[1], ne[1], nw[0], se[0])
-    return images[0], images[1]
+    img_path = os.path.join(image_dir, os.listdir(image_dir)[1])
+    classify = get_bounds_and_draw(img_bounds, lat, lng, img_path)
+    emergency_details["classify"] = classify
+    txt_path = "pred34_cls_/destruction_percentages.txt"
+    with open(txt_path, "r") as file:
+        destroyed_content = file.readline().strip()
+    emergency_details["destroyed"] = destroyed_content
+
+    with open("emergency_details.json", "w") as file:
+        json.dump(emergency_details, file, indent=4)
+    image = Image.open("marked/image.png")
+    return image
 
 
 def transcribe(audio):
@@ -287,8 +316,9 @@ def transcribe(audio):
 
 def full_workflow(audio):
     transcript = transcribe(audio)
-    result_images = process_text_and_images(transcript)
-    return transcript, result_images[0], result_images[1]
+    process_text_and_images(transcript)
+    image = Image.open("marked/image.png")
+    return transcript, image
 
 
 with gr.Blocks() as demo:
@@ -299,8 +329,7 @@ with gr.Blocks() as demo:
         label="Transcription", placeholder="Transcribed text will appear here..."
     )
     process_button = gr.Button("Process Transcription")
-    image_output1 = gr.Image(label="Image Result 1")
-    image_output2 = gr.Image(label="Destroyed Buildings")
+    image_output = gr.Image(label="Destroyed Buildings")
 
     transcribe_button.click(
         transcribe, inputs=audio_input, outputs=transcription_output
@@ -308,7 +337,7 @@ with gr.Blocks() as demo:
     process_button.click(
         process_text_and_images,
         inputs=transcription_output,
-        outputs=[image_output1, image_output2],
+        outputs=[image_output],
     )
 
 demo.launch()

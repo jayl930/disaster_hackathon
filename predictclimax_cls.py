@@ -28,9 +28,9 @@ from utility import *
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 
-test_dir = "/Users/jaylee/Documents/work/hackathon/data"
-pred_folder = "/Users/jaylee/Documents/work/hackathon/pred34_cls_"
-models_folder = "/Users/jaylee/Documents/work/hackathon/model"
+test_dir = "data"
+pred_folder = "pred34_cls_"
+models_folder = "model"
 
 
 def calculate_damage_percentage(pred_full):
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         img_size=[256, 256],
         patch_size=16,
         default_vars=variables,
-        pretrained="/Users/jaylee/Documents/work/hackathon/model/climax_cls_cce_0_0_best.pth",
+        pretrained="model/climax_cls_cce_0_0_best.pth",
         out_dim=5,
         upsampling_steps=[
             {"step_scale_factor": 2, "new_channel_dim": 1024, "feature_dim": 2048},

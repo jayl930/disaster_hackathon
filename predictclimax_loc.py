@@ -28,9 +28,9 @@ from utility import *
 cv2.setNumThreads(0)
 cv2.ocl.setUseOpenCL(False)
 
-test_dir = "/Users/jaylee/Documents/work/hackathon/data"
-pred_folder = "/Users/jaylee/Documents/work/hackathon/pred34_loc_"
-models_folder = "/Users/jaylee/Documents/work/hackathon/model"
+test_dir = "data"
+pred_folder = "pred34_loc_"
+models_folder = "model"
 
 if __name__ == "__main__":
     t0 = timeit.default_timer()
@@ -50,7 +50,7 @@ if __name__ == "__main__":
             img_size=[512, 512],
             patch_size=16,
             default_vars=variables,
-            pretrained="/Users/adityaranjan/Documents/ncsa-hack/model/climax_loc_0_0_best.pth",
+            pretrained="model/climax_loc_0_0_best.pth",
             upsampling_steps=[
                 {"step_scale_factor": 2, "new_channel_dim": 1024, "feature_dim": 2048},
                 {"step_scale_factor": 2, "new_channel_dim": 512, "feature_dim": 1024},
