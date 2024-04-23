@@ -328,7 +328,7 @@ def get_report():
 
 def process_text_and_images(text):
     nw, ne, se, sw = get_images(text, "data")
-    # subprocess.run(["python", "predictclimax_cls.py", "0"])
+    subprocess.run(["python", "predictclimax_cls.py", "0"])
     image_dir = "pred34_cls_"
     with open("emergency_details.json", "r") as file:
         emergency_details = json.load(file)
