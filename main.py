@@ -292,16 +292,30 @@ def get_report():
                 You will read in the emergency_details.json.
                 Details:
                 {details}
-                There are 8 fields in the JSON file.
+                The JSON file contains 8 fields:
                 - 'name': The name of the person.
                 - 'appearance': A description of the person's appearance.
                 - 'address': The address where assistance is needed.
                 - 'situation': A detailed description of the situation facing the person, written in third person.
                 - 'latitude': The latitude of the address mentioned above.
                 - 'longitude': The longitude of the address mentioned above.
-                - 'classify': The level of severity of the address. There are four levels: destroyed, major-damage, minor-damage and no-damage.
+                - 'classify': The level of severity of the address. There are four levels: destroyed, major-damage, minor-damage, and no-damage.
                 - 'destroyed': The percentage of destruction in the surrounding area. The higher the percentage, the more severe the damage.
-                According to the information above, please write a message in detail to the emergency services to inform them of the situation.
+
+                Based on the provided details:
+                - Summarize the situation including the name and address of the individual and what they are facing, along with a mention that a tornado has passed by.
+                - Assess the emergency level without reasoning in the output; just provide the number, using the following simplified criteria:
+                    * Level 1: The individual is in imminent danger, requires immediate evacuation or life-saving interventions.
+                    * Level 2: The individual is at high risk, such as being trapped or having serious injuries that do not yet require immediate life-saving actions.
+                    * Level 3: The individual is in a potentially hazardous situation that could worsen, needing prompt attention.
+                    * Level 4: The individual needs assistance but is not in immediate danger; the situation is stable enough to allow for planned intervention.
+                    * Level 5: The situation is controlled; the individual needs minimal or routine assistance.
+                    If the 'situation' description is insufficient or missing, assign 'Not Known' as the danger level.
+                
+                - Conclude with a statement on whether the message will be forwarded to the rescue team, based solely on the assessed level.
+                - Ensure each of these parts is separated by a line break to enhance readability and present the information in a single, well-organized paragraph without using list or numbering format.
+
+                Do not include any numbers or detailed reasoning for the emergency level in the output.
                 """,
             ),
             ("human", ""),
@@ -314,7 +328,7 @@ def get_report():
 
 def process_text_and_images(text):
     nw, ne, se, sw = get_images(text, "data")
-    subprocess.run(["python", "predictclimax_cls.py", "0"])
+    # subprocess.run(["python", "predictclimax_cls.py", "0"])
     image_dir = "pred34_cls_"
     with open("emergency_details.json", "r") as file:
         emergency_details = json.load(file)
