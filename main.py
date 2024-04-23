@@ -257,8 +257,8 @@ def get_bounds_and_draw(img_bounds, lat, lng, img_path):
     pixel_coords = latlng_to_pixels(lat, lng, img_bounds, img_size)
     path = img_path.split("/")[-1]
     draw = ImageDraw.Draw(img)
-    radius = 20
-    color = "red"
+    radius = 30
+    color = "white"
     draw.ellipse(
         (
             pixel_coords[0] - radius,
